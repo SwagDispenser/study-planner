@@ -1,4 +1,5 @@
 export type TaskPriority = 'low' | 'medium' | 'high'
+export type TaskFilter = 'all' | 'completed' | 'active'
 
 export interface Task {
   id: number
@@ -8,3 +9,5 @@ export interface Task {
   priority: TaskPriority
   category: string
 }
+
+export type TaskDraft = Omit<Task, 'id' | 'completed'>

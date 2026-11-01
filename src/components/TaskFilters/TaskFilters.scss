@@ -1,0 +1,34 @@
+.task-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+
+  &__button {
+    min-height: 2.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #a3a3a3;
+    border-radius: 2px;
+    color: #374151;
+    background-color: #ffffff;
+    font: inherit;
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #e5e7eb;
+    }
+
+    &--active,
+    &--active:hover {
+      border-color: #374151;
+      color: #ffffff;
+      background-color: #374151;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #374151;
+      outline-offset: 3px;
+    }
+  }
+}
