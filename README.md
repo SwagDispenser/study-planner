@@ -38,6 +38,19 @@ npm run preview
 Збірка зберігається в папці `dist`. Сервер перегляду показує адресу в терміналі
 (за замовчуванням `http://localhost:4173`).
 
+## Перевірка TypeScript та ESLint
+
+```bash
+npm run typecheck
+npm run lint
+```
+
+`typecheck` перевіряє типи коду застосунку та конфігурації Vite без створення
+production-збірки. Для обох частин проєкту ввімкнено строгий режим TypeScript
+(`strict: true`). `lint` перевіряє правила TypeScript, React Hooks та Fast Refresh.
+
+Команда `npm run build` також перевіряє типи перед створенням збірки Vite.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
