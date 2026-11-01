@@ -13,6 +13,31 @@ nvm install
 nvm use
 ```
 
+## Запуск через npm
+
+Усі команди виконуйте в папці `study-planner`.
+
+Встановіть залежності за версіями з `package-lock.json` та запустіть сервер розробки:
+
+```bash
+npm ci
+npm run dev
+```
+
+Відкрийте адресу з термінала (за замовчуванням `http://localhost:5173`).
+Якщо порт зайнятий, Vite вибере інший і покаже актуальну адресу.
+Щоб зупинити сервер, натисніть `Ctrl+C`.
+
+Для створення production-збірки та її локального перегляду:
+
+```bash
+npm run build
+npm run preview
+```
+
+Збірка зберігається в папці `dist`. Сервер перегляду показує адресу в терміналі
+(за замовчуванням `http://localhost:4173`).
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
