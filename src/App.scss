@@ -1,0 +1,16 @@
+.app {
+  width: min(100% - 2rem, 820px);
+  margin: 0 auto;
+  padding: 2rem 0;
+
+  &__section-title {
+    margin: 0 0 1rem;
+    font-size: 1.125rem;
+  }
+
+  &__note {
+    margin: 1.5rem 0 0;
+    color: #526078;
+    font-size: 0.875rem;
+  }
+}
