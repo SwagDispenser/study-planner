@@ -1,5 +1,18 @@
 # React + TypeScript + Vite
 
+## Вимоги до середовища
+
+- Node.js 22.22.0 або новіший (мінімальна версія зазначена в `package.json`).
+- React та React DOM 19.x (версії залежностей зафіксовані у `package-lock.json`).
+- Для розробки використовується Node.js 24.21.0, зазначений у `.nvmrc`.
+
+Якщо встановлено nvm, у папці `study-planner` можна вибрати версію Node.js:
+
+```bash
+nvm install
+nvm use
+```
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
