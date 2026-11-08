@@ -1,15 +1,20 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
-import type { TaskDraft, TaskPriority } from '../../types/task'
+import type { Task, TaskDraft, TaskPriority } from '../../types/task'
 import { useTaskContext } from '../../hooks/useTaskContext'
 import './TaskForm.scss'
 
 function TaskForm() {
-  const { addTask } = useTaskContext()
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('')
-  const [priority, setPriority] = useState<TaskPriority>('medium')
+  const { editingTask } = useTaskContext()
+  return <TaskFormFields key={editingTask?.id ?? 'new'} task={editingTask} />
+}
+
+function TaskFormFields({ task }: { task: Task | null }) {
+  const { addTask, updateTask, cancelEditing } = useTaskContext()
+  const [title, setTitle] = useState(task?.title ?? '')
+  const [description, setDescription] = useState(task?.description ?? '')
+  const [category, setCategory] = useState(task?.category ?? '')
+  const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? 'medium')
   const [titleError, setTitleError] = useState('')
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
@@ -26,6 +31,10 @@ function TaskForm() {
       category: category.trim() || 'Без категорії',
       priority,
     }
+    if (task) {
+      updateTask(task.id, draft)
+      return
+    }
     if (!addTask(draft)) return
 
     setTitle('')
@@ -37,7 +46,9 @@ function TaskForm() {
 
   return (
     <section className="task-form" aria-labelledby="task-form-heading">
-      <h2 className="task-form__title" id="task-form-heading">Нове завдання</h2>
+      <h2 className="task-form__title" id="task-form-heading">
+        {task ? 'Редагування завдання' : 'Нове завдання'}
+      </h2>
       <form className="task-form__fields" onSubmit={handleSubmit} noValidate>
         <div className="task-form__field task-form__field--wide">
           <label className="task-form__label" htmlFor="task-title">Назва *</label>
@@ -47,6 +58,7 @@ function TaskForm() {
             type="text"
             value={title}
             required
+            autoFocus={task !== null}
             aria-invalid={Boolean(titleError)}
             aria-describedby={titleError ? 'task-title-error' : undefined}
             onChange={(event) => {
@@ -93,7 +105,16 @@ function TaskForm() {
             <option value="high">Високий</option>
           </select>
         </div>
-        <button className="task-form__submit" type="submit">Додати</button>
+        <div className="task-form__actions">
+          <button className="task-form__submit" type="submit">
+            {task ? 'Зберегти зміни' : 'Додати'}
+          </button>
+          {task && (
+            <button className="task-form__cancel" type="button" onClick={cancelEditing}>
+              Скасувати редагування
+            </button>
+          )}
+        </div>
       </form>
     </section>
   )

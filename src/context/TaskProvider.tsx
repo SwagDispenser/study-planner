@@ -28,7 +28,9 @@ function TaskProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, undefined, initializeTasks)
   const [filter, setFilter] = useLocalStorage<TaskFilter>(FILTER_STORAGE_KEY, 'all', isTaskFilter)
   const [toast, setToast] = useState<ToastMessage | null>(null)
+  const [editingId, setEditingId] = useState<Task['id'] | null>(null)
   const { tasks, pendingDeletion } = state
+  const editingTask = tasks.find((task) => task.id === editingId) ?? null
   const activeCount = tasks.filter((task) => !task.completed).length
 
   const showToast = useCallback((message: string, kind: ToastMessage['kind'] = 'success') => {
@@ -100,8 +102,13 @@ function TaskProvider({ children }: { children: ReactNode }) {
       return false
     }
     dispatch({ type: 'update', payload: { id, changes: normalized } })
+    setEditingId(null)
     showToast('Зміни збережено.')
     return true
+  }
+
+  function startEditing(id: Task['id']) {
+    if (canChangeTask(id)) setEditingId(id)
   }
 
   function toggleTask(id: Task['id']) {
@@ -114,6 +121,7 @@ function TaskProvider({ children }: { children: ReactNode }) {
       return
     }
     if (!canChangeTask(id)) return
+    if (editingId === id) setEditingId(null)
     dispatch({
       type: 'requestDelete',
       payload: { taskId: id, token: crypto.randomUUID(), deadline: Date.now() + DELETE_DELAY_MS },
@@ -129,14 +137,16 @@ function TaskProvider({ children }: { children: ReactNode }) {
 
   function resetTasks() {
     dispatch({ type: 'reset' })
+    setEditingId(null)
     setFilter('all')
     showToast('Відновлено початкові завдання.')
   }
 
   return (
     <TaskContext.Provider value={{
-      tasks, filter, setFilter, pendingDeletion, toast,
+      tasks, filter, setFilter, pendingDeletion, editingTask, toast,
       addTask, updateTask, toggleTask, requestDelete, undoDelete, resetTasks,
+      startEditing, cancelEditing: () => setEditingId(null),
       dismissToast: () => setToast(null),
     }}>
       {children}

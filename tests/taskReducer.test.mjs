@@ -69,8 +69,39 @@ test('only one deletion is active; unrelated operations do not replace its deadl
 
 test('stale callbacks cannot confirm or undo a newer deletion', () => {
   const pending = taskReducer(createTaskState(initialTasks), { type: 'requestDelete', payload: deletion })
-  assert.equal(taskReducer(pending, { type: 'confirmDelete', payload: { token: 'stale' } }), pending)
-  assert.equal(taskReducer(pending, { type: 'undoDelete', payload: { token: 'stale' } }), pending)
+  const undone = taskReducer(pending, { type: 'undoDelete', payload: { token: deletion.token } })
+  const newer = taskReducer(undone, {
+    type: 'requestDelete', payload: { taskId: 2, token: 'delete-2', deadline: 9000 },
+  })
+  assert.equal(taskReducer(newer, { type: 'confirmDelete', payload: { token: deletion.token } }), newer)
+  assert.equal(taskReducer(newer, { type: 'undoDelete', payload: { token: deletion.token } }), newer)
+  const confirmed = taskReducer(newer, { type: 'confirmDelete', payload: { token: 'delete-2' } })
+  assert.deepEqual(confirmed.tasks.map((task) => task.id), [1, 3])
+})
+
+test('editing another task does not restart or cancel a pending deletion', () => {
+  const pending = freezeDeep(taskReducer(createTaskState(initialTasks), {
+    type: 'requestDelete', payload: deletion,
+  }))
+  const edited = taskReducer(pending, { type: 'update', payload: { id: 2, changes: draft } })
+  assert.equal(edited.pendingDeletion, pending.pendingDeletion)
+  assert.equal(edited.nextId, pending.nextId)
+  assert.equal(edited.tasks.length, pending.tasks.length)
+  assert.deepEqual(edited.tasks[1], { ...draft, id: 2, completed: true })
+  assert.equal(pending.tasks[1].title, 'TypeScript Exercises')
+  const confirmed = taskReducer(edited, { type: 'confirmDelete', payload: { token: deletion.token } })
+  assert.equal(confirmed.tasks.some((task) => task.id === 1), false)
+  assert.deepEqual(confirmed.tasks[0], edited.tasks[1])
+})
+
+test('editing a task with a duplicate title updates only the selected ID', () => {
+  const before = freezeDeep(createTaskState([
+    { ...initialTasks[0], title: 'Однакова назва' },
+    { ...initialTasks[1], title: 'Однакова назва' },
+  ]))
+  const after = taskReducer(before, { type: 'update', payload: { id: 2, changes: draft } })
+  assert.equal(after.tasks[0], before.tasks[0])
+  assert.deepEqual(after.tasks[1], { ...draft, id: 2, completed: true })
 })
 
 test('reset restores initial data, cancels pending deletion and ignores its stale callback', () => {

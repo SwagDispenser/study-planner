@@ -57,25 +57,42 @@
     font-size: 0.875rem;
   }
 
-  &__submit {
+  &__actions {
     grid-column: 1 / -1;
-    justify-self: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  &__submit,
+  &__cancel {
     min-height: 2.75rem;
     padding: 0.5rem 1rem;
     border: 1px solid #374151;
     border-radius: 2px;
-    color: #ffffff;
-    background-color: #374151;
     font: inherit;
     cursor: pointer;
+  }
+
+  &__submit {
+    color: #ffffff;
+    background-color: #374151;
 
     &:hover {
       background-color: #1f2937;
     }
   }
 
+  &__cancel {
+    color: #374151;
+    background-color: #ffffff;
+
+    &:hover { background-color: #f3f4f6; }
+  }
+
   &__control:focus-visible,
-  &__submit:focus-visible {
+  &__submit:focus-visible,
+  &__cancel:focus-visible {
     outline: 2px solid #374151;
     outline-offset: 3px;
   }
