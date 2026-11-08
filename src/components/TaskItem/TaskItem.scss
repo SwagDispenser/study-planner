@@ -18,6 +18,19 @@
     text-decoration: line-through;
   }
 
+  &--pending {
+    border-style: dashed;
+    background-color: #f0f0f0;
+  }
+
+  &--pending &__details { opacity: 0.65; }
+
+  &__pending {
+    margin: 0.5rem 0 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
   &__details {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -105,6 +118,11 @@
 
     &:hover {
       background-color: #fff1f2;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
   }
 

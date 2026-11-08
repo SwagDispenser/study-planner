@@ -1,36 +1,31 @@
-import type { Task } from '../../types/task'
+import { useTaskContext } from '../../hooks/useTaskContext'
 import TaskItem from '../TaskItem/TaskItem'
 import './TaskList.scss'
 
-interface TaskListProps {
-  tasks: Task[]
-  emptyMessage?: string
-  onToggle: (id: Task['id']) => void
-  onDelete: (id: Task['id']) => void
-}
+function TaskList() {
+  const { tasks, filter } = useTaskContext()
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === 'completed') return task.completed
+    if (filter === 'active') return !task.completed
+    return true
+  })
 
-function TaskList({
-  tasks,
-  emptyMessage = 'Завдань поки немає. Додайте перше навчальне завдання.',
-  onToggle,
-  onDelete,
-}: TaskListProps) {
-  if (tasks.length === 0) {
+  if (filteredTasks.length === 0) {
     return (
       <p className="task-list__empty" role="status">
-        {emptyMessage}
+        {tasks.length === 0
+          ? 'Завдань поки немає. Додайте перше навчальне завдання.'
+          : 'За цим фільтром завдань немає.'}
       </p>
     )
   }
 
   return (
     <ul className="task-list">
-      {tasks.map((task) => (
+      {filteredTasks.map((task) => (
         <TaskItem
           key={task.id}
           task={task}
-          onToggle={onToggle}
-          onDelete={onDelete}
         />
       ))}
     </ul>

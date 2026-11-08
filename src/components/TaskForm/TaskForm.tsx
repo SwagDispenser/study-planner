@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import type { SubmitEvent } from 'react'
 import type { TaskDraft, TaskPriority } from '../../types/task'
+import { useTaskContext } from '../../hooks/useTaskContext'
 import './TaskForm.scss'
 
-interface TaskFormProps {
-  onAdd: (task: TaskDraft) => void
-}
-
-function TaskForm({ onAdd }: TaskFormProps) {
+function TaskForm() {
+  const { addTask } = useTaskContext()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [category, setCategory] = useState('')
@@ -22,12 +20,13 @@ function TaskForm({ onAdd }: TaskFormProps) {
       return
     }
 
-    onAdd({
+    const draft: TaskDraft = {
       title: title.trim(),
       description: description.trim(),
       category: category.trim() || 'Без категорії',
       priority,
-    })
+    }
+    if (!addTask(draft)) return
 
     setTitle('')
     setDescription('')

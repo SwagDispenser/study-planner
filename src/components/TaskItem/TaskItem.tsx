@@ -1,10 +1,9 @@
 import type { Task, TaskPriority } from '../../types/task'
+import { useTaskContext } from '../../hooks/useTaskContext'
 import './TaskItem.scss'
 
 interface TaskItemProps {
   task: Task
-  onToggle: (id: Task['id']) => void
-  onDelete: (id: Task['id']) => void
 }
 
 const priorityLabels: Record<TaskPriority, string> = {
@@ -13,9 +12,11 @@ const priorityLabels: Record<TaskPriority, string> = {
   high: 'Високий',
 }
 
-function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
+function TaskItem({ task }: TaskItemProps) {
+  const { toggleTask, requestDelete, pendingDeletion } = useTaskContext()
+  const isPending = pendingDeletion?.taskId === task.id
   return (
-    <li className={`task-item${task.completed ? ' task-item--completed' : ''}`}>
+    <li className={`task-item${task.completed ? ' task-item--completed' : ''}${isPending ? ' task-item--pending' : ''}`}>
       <div className="task-item__details">
         <div className="task-item__meta">
           <span className="task-item__category">{task.category}</span>
@@ -25,6 +26,7 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
         </div>
         <h3 className="task-item__title">{task.title}</h3>
         <p className="task-item__description">{task.description}</p>
+        {isPending && <p className="task-item__pending">Буде видалено. Можна скасувати.</p>}
       </div>
       <div className="task-item__actions">
         <label className="task-item__status">
@@ -32,8 +34,9 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
             className="task-item__checkbox"
             type="checkbox"
             checked={task.completed}
+            disabled={isPending}
             aria-label={`Завдання «${task.title}» виконано`}
-            onChange={() => onToggle(task.id)}
+            onChange={() => toggleTask(task.id)}
           />
           {task.completed ? 'Виконано' : 'Не виконано'}
         </label>
@@ -41,7 +44,8 @@ function TaskItem({ task, onToggle, onDelete }: TaskItemProps) {
           className="task-item__delete"
           type="button"
           aria-label={`Видалити завдання «${task.title}»`}
-          onClick={() => onDelete(task.id)}
+          disabled={pendingDeletion !== null}
+          onClick={() => requestDelete(task.id)}
         >
           Видалити
         </button>
