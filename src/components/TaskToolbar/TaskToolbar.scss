@@ -19,3 +19,8 @@
     }
   }
 }
+
+.task-toolbar__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.task-toolbar__position { margin: 0 0 0.5rem; }
+.task-toolbar__note { color: #526078; font-size: 0.875rem; }
+.task-toolbar__button:disabled { opacity: 0.5; cursor: not-allowed; }

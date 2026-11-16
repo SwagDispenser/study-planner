@@ -1,6 +1,5 @@
 import { createContext } from 'react'
 import type { Task, TaskDraft, TaskFilter } from '../types/task'
-import type { PendingDeletion } from '../state/taskReducer'
 
 export interface ToastMessage {
   id: string
@@ -12,17 +11,25 @@ export interface TaskContextValue {
   tasks: Task[]
   filter: TaskFilter
   setFilter: (filter: TaskFilter) => void
-  pendingDeletion: PendingDeletion | null
+  page: number
+  pageCount: number
+  serverTotal: number
+  setPage: (page: number) => void
+  listStatus: 'loading' | 'success' | 'error'
+  listError: string
+  reloadTasks: () => void
+  busy: boolean
   editingTask: Task | null
+  selectedId: number | null
+  selectTask: (id: number | null) => void
+  revision: number
   toast: ToastMessage | null
-  addTask: (draft: TaskDraft) => boolean
-  updateTask: (id: Task['id'], changes: TaskDraft) => boolean
-  startEditing: (id: Task['id']) => void
+  addTask: (draft: TaskDraft) => Promise<boolean>
+  updateTask: (id: number, changes: TaskDraft) => Promise<boolean>
+  toggleTask: (id: number) => Promise<void>
+  deleteTask: (id: number) => Promise<boolean>
+  startEditing: (id: number) => void
   cancelEditing: () => void
-  toggleTask: (id: Task['id']) => void
-  requestDelete: (id: Task['id']) => void
-  undoDelete: () => void
-  resetTasks: () => void
   dismissToast: () => void
 }
 

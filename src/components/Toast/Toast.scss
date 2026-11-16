@@ -53,18 +53,4 @@
     }
   }
 
-  &__progress {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    height: 3px;
-    background-color: #374151;
-    transform-origin: left;
-    animation: toast-countdown 5s linear forwards;
-  }
-}
-
-@keyframes toast-countdown {
-  to { transform: scaleX(0); }
 }

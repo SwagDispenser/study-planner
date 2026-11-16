@@ -12,7 +12,6 @@ export function useLocalStorage<T>(
     try {
       window.localStorage.setItem(key, JSON.stringify(value))
     } catch {
-      // The current session remains usable when browser storage is unavailable.
       console.warn(`Не вдалося зберегти налаштування: ${key}`)
     }
   }, [key, value])

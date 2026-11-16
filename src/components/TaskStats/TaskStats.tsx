@@ -8,9 +8,9 @@ function TaskStats() {
   const active = total - completed
 
   return (
-    <dl className="task-stats" aria-label="Статистика завдань" aria-live="polite">
+    <dl className="task-stats" aria-label="Статистика завдань на поточній сторінці" aria-live="polite">
       <div className="task-stats__item">
-        <dt>Усього:</dt>
+        <dt>На сторінці:</dt>
         <dd className="task-stats__value">{total}</dd>
       </div>
       <div className="task-stats__item">

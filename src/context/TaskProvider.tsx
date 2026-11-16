@@ -1,152 +1,152 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { initialTasks } from '../data/initialTasks'
+import { getErrorMessage, isAbortError } from '../api/errors'
 import { useLocalStorage } from '../hooks/useLocalStorage'
-import { createTaskState, taskReducer } from '../state/taskReducer'
+import { taskRepository } from '../repositories/taskRepository'
 import type { Task, TaskDraft, TaskFilter } from '../types/task'
-import { FILTER_STORAGE_KEY, isTaskArray, isTaskFilter, readStoredValue, TASKS_STORAGE_KEY } from '../utils/storage'
+import { FILTER_STORAGE_KEY, isTaskFilter } from '../utils/storage'
 import { TaskContext } from './TaskContext'
 import type { ToastMessage } from './TaskContext'
 
-export const DELETE_DELAY_MS = 5000
-const TOAST_DURATION_MS = 3500
-
-function initializeTasks() {
-  return createTaskState(readStoredValue(TASKS_STORAGE_KEY, initialTasks, isTaskArray))
-}
-
-function normalizeDraft(draft: TaskDraft): TaskDraft {
-  return {
-    title: draft.title.trim(),
-    description: draft.description.trim(),
-    category: draft.category.trim() || 'Без категорії',
-    priority: draft.priority,
-  }
-}
+const PAGE_SIZE = 10
 
 function TaskProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(taskReducer, undefined, initializeTasks)
+  const [tasks, setTasks] = useState<Task[]>([])
   const [filter, setFilter] = useLocalStorage<TaskFilter>(FILTER_STORAGE_KEY, 'all', isTaskFilter)
+  const [page, setPageState] = useState(1)
+  const [serverTotal, setServerTotal] = useState(0)
+  const [listStatus, setListStatus] = useState<'loading' | 'success' | 'error'>('loading')
+  const [listError, setListError] = useState('')
+  const [reload, setReload] = useState(0)
+  const [busy, setBusy] = useState(false)
+  const mutationLock = useRef(false)
+  const listController = useRef<AbortController | null>(null)
+  const [revision, setRevision] = useState(0)
   const [toast, setToast] = useState<ToastMessage | null>(null)
-  const [editingId, setEditingId] = useState<Task['id'] | null>(null)
-  const { tasks, pendingDeletion } = state
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [selectedId, selectTask] = useState<number | null>(null)
   const editingTask = tasks.find((task) => task.id === editingId) ?? null
   const activeCount = tasks.filter((task) => !task.completed).length
+  const pageCount = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE))
 
   const showToast = useCallback((message: string, kind: ToastMessage['kind'] = 'success') => {
     setToast({ id: crypto.randomUUID(), message, kind })
   }, [])
 
   useEffect(() => {
-    let errorTimer: number | undefined
-    try {
-      window.localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks))
-    } catch {
-      errorTimer = window.setTimeout(() => {
-        showToast('Не вдалося зберегти завдання. Зміни доступні лише в поточній вкладці.', 'error')
-      }, 0)
-    }
-    return () => window.clearTimeout(errorTimer)
-  }, [tasks, showToast])
+    const controller = new AbortController()
+    listController.current = controller
+    taskRepository.getAll({ limit: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE, signal: controller.signal })
+      .then((result) => {
+        if (controller.signal.aborted) return
+        setTasks(result.tasks)
+        setServerTotal(result.serverTotal)
+        setListStatus('success')
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted || isAbortError(error)) return
+        setListError(getErrorMessage(error))
+        setListStatus('error')
+      })
+    return () => controller.abort()
+  }, [page, reload])
 
   useEffect(() => {
     const previousTitle = document.title
-    document.title = `Study Planner — невиконаних: ${activeCount}`
+    document.title = `Study Planner — невиконаних на сторінці: ${activeCount}`
     return () => { document.title = previousTitle }
   }, [activeCount])
 
   useEffect(() => {
     if (!toast) return
-    const timer = window.setTimeout(() => setToast(null), TOAST_DURATION_MS)
+    const timer = window.setTimeout(() => setToast(null), 5000)
     return () => window.clearTimeout(timer)
   }, [toast])
 
-  useEffect(() => {
-    if (!pendingDeletion) return
-    const timer = window.setTimeout(() => {
-      dispatch({ type: 'confirmDelete', payload: { token: pendingDeletion.token } })
-      showToast('Завдання остаточно видалено.')
-    }, Math.max(0, pendingDeletion.deadline - Date.now()))
-    return () => window.clearTimeout(timer)
-  }, [pendingDeletion, showToast])
+  function loadPage(nextPage: number) {
+    if (mutationLock.current) return
+    listController.current?.abort()
+    setListStatus('loading')
+    setListError('')
+    setTasks([])
+    setEditingId(null)
+    selectTask(null)
+    setPageState(Math.min(pageCount, Math.max(1, nextPage)))
+    setReload((value) => value + 1)
+  }
+
+  async function mutate(operation: () => Promise<void>, message: string): Promise<boolean> {
+    if (mutationLock.current) return false
+    mutationLock.current = true
+    setBusy(true)
+    try {
+      await operation()
+      setRevision((value) => value + 1)
+      showToast(message)
+      return true
+    } catch (error) {
+      showToast(getErrorMessage(error), 'error')
+      return false
+    } finally {
+      mutationLock.current = false
+      setBusy(false)
+    }
+  }
 
   function addTask(draft: TaskDraft) {
-    const normalized = normalizeDraft(draft)
-    if (!normalized.title) {
-      showToast('Не вдалося додати завдання: введіть назву.', 'error')
-      return false
-    }
-    dispatch({ type: 'add', payload: normalized })
-    setFilter('all')
-    showToast('Завдання додано.')
-    return true
+    return mutate(async () => {
+      const task = await taskRepository.create(draft)
+      setFilter('all')
+      if (page === 1) {
+        setTasks((current) => [task, ...current])
+      } else {
+        loadAfterCreate()
+      }
+    }, 'Завдання додано. Зміни доступні до перезавантаження.')
   }
 
-  function canChangeTask(id: Task['id']) {
-    if (!tasks.some((task) => task.id === id)) {
-      showToast('Завдання вже не існує.', 'error')
-      return false
-    }
-    if (pendingDeletion?.taskId === id) {
-      showToast('Спочатку скасуйте видалення цього завдання.', 'error')
-      return false
-    }
-    return true
-  }
-
-  function updateTask(id: Task['id'], changes: TaskDraft) {
-    if (!canChangeTask(id)) return false
-    const normalized = normalizeDraft(changes)
-    if (!normalized.title) {
-      showToast('Не вдалося зберегти завдання: введіть назву.', 'error')
-      return false
-    }
-    dispatch({ type: 'update', payload: { id, changes: normalized } })
+  function loadAfterCreate() {
+    listController.current?.abort()
+    setTasks([])
+    setListStatus('loading')
     setEditingId(null)
-    showToast('Зміни збережено.')
-    return true
+    selectTask(null)
+    setPageState(1)
+    setReload((value) => value + 1)
   }
 
-  function startEditing(id: Task['id']) {
-    if (canChangeTask(id)) setEditingId(id)
+  function updateTask(id: number, draft: TaskDraft) {
+    return mutate(async () => {
+      const task = await taskRepository.update(id, draft)
+      setTasks((current) => current.map((item) => item.id === id ? task : item))
+      setEditingId(null)
+    }, 'Зміни збережено в поточній сесії.')
   }
 
-  function toggleTask(id: Task['id']) {
-    if (canChangeTask(id)) dispatch({ type: 'toggle', payload: { id } })
+  async function toggleTask(id: number) {
+    const task = tasks.find((item) => item.id === id)
+    if (!task) return
+    await mutate(async () => {
+      const updated = await taskRepository.update(id, { completed: !task.completed })
+      setTasks((current) => current.map((item) => item.id === id ? updated : item))
+    }, 'Статус завдання оновлено.')
   }
 
-  function requestDelete(id: Task['id']) {
-    if (pendingDeletion) {
-      showToast('Спочатку скасуйте або дочекайтеся поточного видалення.', 'error')
-      return
-    }
-    if (!canChangeTask(id)) return
-    if (editingId === id) setEditingId(null)
-    dispatch({
-      type: 'requestDelete',
-      payload: { taskId: id, token: crypto.randomUUID(), deadline: Date.now() + DELETE_DELAY_MS },
-    })
-    setToast(null)
-  }
-
-  function undoDelete() {
-    if (!pendingDeletion) return
-    dispatch({ type: 'undoDelete', payload: { token: pendingDeletion.token } })
-    showToast('Видалення скасовано.')
-  }
-
-  function resetTasks() {
-    dispatch({ type: 'reset' })
-    setEditingId(null)
-    setFilter('all')
-    showToast('Відновлено початкові завдання.')
+  function deleteTask(id: number) {
+    return mutate(async () => {
+      await taskRepository.delete(id)
+      setTasks((current) => current.filter((item) => item.id !== id))
+      if (editingId === id) setEditingId(null)
+      if (selectedId === id) selectTask(null)
+    }, 'Завдання видалено в поточній сесії.')
   }
 
   return (
     <TaskContext.Provider value={{
-      tasks, filter, setFilter, pendingDeletion, editingTask, toast,
-      addTask, updateTask, toggleTask, requestDelete, undoDelete, resetTasks,
-      startEditing, cancelEditing: () => setEditingId(null),
+      tasks, filter, setFilter, page, pageCount, serverTotal, listStatus, listError,
+      setPage: loadPage, reloadTasks: () => loadPage(page), busy, revision,
+      editingTask, selectedId, selectTask, toast, addTask, updateTask, toggleTask, deleteTask,
+      startEditing: setEditingId, cancelEditing: () => setEditingId(null),
       dismissToast: () => setToast(null),
     }}>
       {children}
