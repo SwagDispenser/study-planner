@@ -1,5 +1,10 @@
-.task-form {
-  margin-bottom: 1.5rem;
+.task-form-dialog {
+  width: min(100% - 2rem, 600px);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  color: #1f2937;
+
+  &::backdrop { background: #0006; }
   padding: 1rem;
   border: 1px solid #d4d4d4;
   border-radius: 4px;
@@ -11,6 +16,10 @@
   }
 
   &__fields {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem 1rem;
@@ -104,6 +113,6 @@
   }
 }
 
-.task-form__submit:disabled,
-.task-form__cancel:disabled,
-.task-form__control:disabled { opacity: 0.6; cursor: not-allowed; }
+.task-form-dialog__submit:disabled,
+.task-form-dialog__cancel:disabled,
+.task-form-dialog__control:disabled { opacity: 0.6; cursor: not-allowed; }

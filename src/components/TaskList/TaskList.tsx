@@ -1,10 +1,13 @@
 import { useTaskContext } from '../../hooks/useTaskContext'
+import { useTaskFilters } from '../../hooks/useTaskFilters'
 import TaskItem from '../TaskItem/TaskItem'
 import './TaskList.scss'
 
 function TaskList() {
-  const { tasks, filter, listStatus, listError, reloadTasks } = useTaskContext()
+  const { tasks, listStatus, listError, reloadTasks } = useTaskContext()
+  const { filter, priority } = useTaskFilters()
   const filteredTasks = tasks.filter((task) => {
+    if (priority !== 'all' && task.priority !== priority) return false
     if (filter === 'completed') return task.completed
     if (filter === 'active') return !task.completed
     return true

@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { getErrorMessage, isAbortError } from '../api/errors'
-import { useLocalStorage } from '../hooks/useLocalStorage'
+import { ApiError, getErrorMessage, isAbortError } from '../api/errors'
+import { requireSession } from '../auth/authSession'
 import { taskRepository } from '../repositories/taskRepository'
-import type { Task, TaskDraft, TaskFilter } from '../types/task'
-import { FILTER_STORAGE_KEY, isTaskFilter } from '../utils/storage'
+import type { Task, TaskDraft } from '../types/task'
 import { TaskContext } from './TaskContext'
 import type { ToastMessage } from './TaskContext'
 
@@ -12,7 +11,6 @@ const PAGE_SIZE = 10
 
 function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<Task[]>([])
-  const [filter, setFilter] = useLocalStorage<TaskFilter>(FILTER_STORAGE_KEY, 'all', isTaskFilter)
   const [page, setPageState] = useState(1)
   const [serverTotal, setServerTotal] = useState(0)
   const [listStatus, setListStatus] = useState<'loading' | 'success' | 'error'>('loading')
@@ -23,9 +21,6 @@ function TaskProvider({ children }: { children: ReactNode }) {
   const listController = useRef<AbortController | null>(null)
   const [revision, setRevision] = useState(0)
   const [toast, setToast] = useState<ToastMessage | null>(null)
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const [selectedId, selectTask] = useState<number | null>(null)
-  const editingTask = tasks.find((task) => task.id === editingId) ?? null
   const activeCount = tasks.filter((task) => !task.completed).length
   const pageCount = Math.max(1, Math.ceil(serverTotal / PAGE_SIZE))
 
@@ -69,24 +64,19 @@ function TaskProvider({ children }: { children: ReactNode }) {
     setListStatus('loading')
     setListError('')
     setTasks([])
-    setEditingId(null)
-    selectTask(null)
     setPageState(Math.min(pageCount, Math.max(1, nextPage)))
     setReload((value) => value + 1)
   }
 
-  async function mutate(operation: () => Promise<void>, message: string): Promise<boolean> {
-    if (mutationLock.current) return false
+  async function mutate(operation: () => Promise<void>, message: string): Promise<void> {
+    requireSession()
+    if (mutationLock.current) throw new ApiError('Дочекайтеся завершення поточної операції.')
     mutationLock.current = true
     setBusy(true)
     try {
       await operation()
       setRevision((value) => value + 1)
       showToast(message)
-      return true
-    } catch (error) {
-      showToast(getErrorMessage(error), 'error')
-      return false
     } finally {
       mutationLock.current = false
       setBusy(false)
@@ -96,7 +86,6 @@ function TaskProvider({ children }: { children: ReactNode }) {
   function addTask(draft: TaskDraft) {
     return mutate(async () => {
       const task = await taskRepository.create(draft)
-      setFilter('all')
       if (page === 1) {
         setTasks((current) => [task, ...current])
       } else {
@@ -109,8 +98,6 @@ function TaskProvider({ children }: { children: ReactNode }) {
     listController.current?.abort()
     setTasks([])
     setListStatus('loading')
-    setEditingId(null)
-    selectTask(null)
     setPageState(1)
     setReload((value) => value + 1)
   }
@@ -119,13 +106,11 @@ function TaskProvider({ children }: { children: ReactNode }) {
     return mutate(async () => {
       const task = await taskRepository.update(id, draft)
       setTasks((current) => current.map((item) => item.id === id ? task : item))
-      setEditingId(null)
     }, 'Зміни збережено в поточній сесії.')
   }
 
-  async function toggleTask(id: number) {
-    const task = tasks.find((item) => item.id === id)
-    if (!task) return
+  async function toggleTask(task: Task) {
+    const id = task.id
     await mutate(async () => {
       const updated = await taskRepository.update(id, { completed: !task.completed })
       setTasks((current) => current.map((item) => item.id === id ? updated : item))
@@ -136,17 +121,14 @@ function TaskProvider({ children }: { children: ReactNode }) {
     return mutate(async () => {
       await taskRepository.delete(id)
       setTasks((current) => current.filter((item) => item.id !== id))
-      if (editingId === id) setEditingId(null)
-      if (selectedId === id) selectTask(null)
     }, 'Завдання видалено в поточній сесії.')
   }
 
   return (
     <TaskContext.Provider value={{
-      tasks, filter, setFilter, page, pageCount, serverTotal, listStatus, listError,
+      tasks, page, pageCount, serverTotal, listStatus, listError,
       setPage: loadPage, reloadTasks: () => loadPage(page), busy, revision,
-      editingTask, selectedId, selectTask, toast, addTask, updateTask, toggleTask, deleteTask,
-      startEditing: setEditingId, cancelEditing: () => setEditingId(null),
+      toast, addTask, updateTask, toggleTask, deleteTask,
       dismissToast: () => setToast(null),
     }}>
       {children}

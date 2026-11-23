@@ -8,6 +8,9 @@ export interface Task {
   completed: boolean
   priority: TaskPriority
   category: string
+  // Client-owned metadata: DummyJSON Todos does not provide these fields.
+  createdBy: string
+  createdAt: string | null
 }
 
-export type TaskDraft = Omit<Task, 'id' | 'completed'>
+export type TaskDraft = Pick<Task, 'title' | 'description' | 'category' | 'priority'>

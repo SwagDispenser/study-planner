@@ -1,0 +1,8 @@
+.profile-page {
+  padding: 1rem; border: 1px solid #d4d4d4; border-radius: 4px; background: #fff; overflow-wrap: anywhere;
+  &__heading { margin: 0 0 1rem; font-size: 1.25rem; }
+  &__fields { display: grid; gap: 1rem; }
+  &__fields dd { margin: 0; font-weight: 600; }
+  &__logout { min-height: 2.75rem; padding: 0.5rem 1rem; border: 1px solid #a3a3a3; border-radius: 2px; background: #fff; font: inherit; cursor: pointer; }
+  &__logout:focus-visible { outline: 2px solid #374151; outline-offset: 3px; }
+}

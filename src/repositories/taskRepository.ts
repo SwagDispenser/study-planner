@@ -1,3 +1,4 @@
+import { requireSession } from '../auth/authSession.ts'
 import { ApiError } from '../api/errors.ts'
 import { httpClient } from '../api/httpClient.ts'
 import type { HttpClient } from '../api/httpClient.ts'
@@ -36,6 +37,9 @@ export function toTask(todo: ApiTodo): Task {
     description: '',
     category: 'General',
     priority: 'medium',
+    // Client-owned fallback: userId identifies the author; creation date is unknown.
+    createdBy: `Користувач #${todo.userId}`,
+    createdAt: null,
   }
 }
 
@@ -75,18 +79,20 @@ export function createTaskRepository(client: HttpClient) {
     },
 
     async create(draft: TaskDraft): Promise<Task> {
+      const { user } = requireSession()
       const todo = await client<ApiTodo>('/todos/add', {
         method: 'POST',
-        body: JSON.stringify({ todo: draft.title, completed: false, userId: 1 }),
+        body: JSON.stringify({ todo: draft.title, completed: false, userId: user.id }),
       })
       // Each simulated POST may return the same server ID. Negative session IDs
       // prevent collisions; these records do not exist at GET /todos/:id.
-      const task: Task = { ...toTask(todo), ...draft, id: nextLocalId-- }
+      const task: Task = { ...toTask(todo), ...draft, id: nextLocalId--, createdBy: user.username, createdAt: new Date().toISOString() }
       created.set(task.id, task)
       return task
     },
 
     async update(id: number, patch: TaskChanges): Promise<Task> {
+      requireSession()
       const localTask = created.get(id)
       if (localTask) {
         const task = { ...localTask, ...patch }
@@ -106,6 +112,7 @@ export function createTaskRepository(client: HttpClient) {
     },
 
     async delete(id: number): Promise<void> {
+      requireSession()
       if (created.has(id)) {
         created.delete(id)
         return

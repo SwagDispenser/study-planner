@@ -1,4 +1,4 @@
-.task-details {
+.task-details-page {
   margin-top: 1rem;
   padding: 1rem;
   border: 1px solid #a3a3a3;
@@ -24,3 +24,10 @@
     &:focus-visible { outline: 2px solid #374151; outline-offset: 3px; }
   }
 }
+
+.task-details-page__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.task-details-page__button { text-decoration: none; }
+.task-details-page__button:disabled { opacity: 0.5; cursor: not-allowed; }
+.task-details-page__note { color: #526078; font-size: 0.875rem; }
+.task-details-page__confirmation { margin-top: 1rem; padding: 0.75rem; border: 1px solid #9f1239; border-radius: 4px; }
+.task-details-page__error { color: #9f1239; }

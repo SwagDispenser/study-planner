@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { Task, TaskDraft, TaskFilter } from '../types/task'
+import type { Task, TaskDraft } from '../types/task'
 
 export interface ToastMessage {
   id: string
@@ -9,8 +9,6 @@ export interface ToastMessage {
 
 export interface TaskContextValue {
   tasks: Task[]
-  filter: TaskFilter
-  setFilter: (filter: TaskFilter) => void
   page: number
   pageCount: number
   serverTotal: number
@@ -19,17 +17,12 @@ export interface TaskContextValue {
   listError: string
   reloadTasks: () => void
   busy: boolean
-  editingTask: Task | null
-  selectedId: number | null
-  selectTask: (id: number | null) => void
   revision: number
   toast: ToastMessage | null
-  addTask: (draft: TaskDraft) => Promise<boolean>
-  updateTask: (id: number, changes: TaskDraft) => Promise<boolean>
-  toggleTask: (id: number) => Promise<void>
-  deleteTask: (id: number) => Promise<boolean>
-  startEditing: (id: number) => void
-  cancelEditing: () => void
+  addTask: (draft: TaskDraft) => Promise<void>
+  updateTask: (id: number, changes: TaskDraft) => Promise<void>
+  toggleTask: (task: Task) => Promise<void>
+  deleteTask: (id: number) => Promise<void>
   dismissToast: () => void
 }
 

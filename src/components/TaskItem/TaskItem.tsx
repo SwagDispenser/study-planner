@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import { Link, useLocation } from 'react-router'
+import { getErrorMessage } from '../../api/errors'
 import type { Task, TaskPriority } from '../../types/task'
 import { useTaskContext } from '../../hooks/useTaskContext'
+import { useAuth } from '../../hooks/useAuth'
 import './TaskItem.scss'
 
 const priorityLabels: Record<TaskPriority, string> = {
@@ -8,50 +11,33 @@ const priorityLabels: Record<TaskPriority, string> = {
 }
 
 function TaskItem({ task }: { task: Task }) {
-  const { toggleTask, deleteTask, busy, editingTask, startEditing, selectTask } = useTaskContext()
-  const [confirming, setConfirming] = useState(false)
-  const isEditing = editingTask?.id === task.id
+  const location = useLocation()
+  const { toggleTask, busy } = useTaskContext()
+  const { isAuthenticated } = useAuth()
+  const [error, setError] = useState('')
   return (
-    <li className={`task-item${task.completed ? ' task-item--completed' : ''}${isEditing ? ' task-item--editing' : ''}`}>
+    <li className={`task-item${task.completed ? ' task-item--completed' : ''}`}>
       <div className="task-item__details">
         <div className="task-item__meta">
           <span className="task-item__category">{task.category}</span>
-          <span className={`task-item__priority task-item__priority--${task.priority}`}>
-            Пріоритет: {priorityLabels[task.priority]}
-          </span>
+          <span className={`task-item__priority task-item__priority--${task.priority}`}>Пріоритет: {priorityLabels[task.priority]}</span>
           {task.id < 0 && <span className="task-item__category">Створено в цій сесії</span>}
         </div>
         <h3 className="task-item__title">{task.title}</h3>
         <p className="task-item__description">{task.description}</p>
+        {error && <p className="task-item__error" role="alert">{error}</p>}
       </div>
       <div className="task-item__actions">
         <label className="task-item__status">
           <input className="task-item__checkbox" type="checkbox" checked={task.completed}
-            disabled={busy || confirming} aria-label={`Завдання «${task.title}» виконано`}
-            onChange={() => { void toggleTask(task.id) }} />
+            disabled={busy || !isAuthenticated} aria-label={`Завдання «${task.title}» виконано`}
+            onChange={async () => {
+              setError('')
+              try { await toggleTask(task) } catch (error) { setError(getErrorMessage(error)) }
+            }} />
           {task.completed ? 'Виконано' : 'Не виконано'}
         </label>
-        <div className="task-item__buttons">
-          <button className="task-item__edit" type="button" onClick={() => selectTask(task.id)}>Деталі</button>
-          <button className="task-item__edit" type="button" disabled={busy || confirming}
-            aria-label={`Редагувати завдання «${task.title}»`} aria-pressed={isEditing}
-            onClick={() => startEditing(task.id)}>Редагувати</button>
-          <button className="task-item__delete" type="button" disabled={busy || confirming}
-            aria-label={`Видалити завдання «${task.title}»`}
-            onClick={() => setConfirming(true)}>Видалити</button>
-        </div>
-        {confirming && (
-          <div className="task-item__confirmation" role="group" aria-label="Підтвердження видалення">
-            <p className="task-item__question">Видалити «{task.title}»?</p>
-            <div className="task-item__buttons">
-              <button className="task-item__delete" type="button" disabled={busy}
-                onClick={async () => { if (await deleteTask(task.id)) setConfirming(false) }}>
-                {busy ? 'Видалення…' : 'Так, видалити'}
-              </button>
-              <button className="task-item__edit" type="button" disabled={busy} onClick={() => setConfirming(false)}>Скасувати</button>
-            </div>
-          </div>
-        )}
+        <Link className="task-item__edit" to={`/tasks/${task.id}`} state={{ from: location.pathname + location.search }}>Деталі</Link>
       </div>
     </li>
   )

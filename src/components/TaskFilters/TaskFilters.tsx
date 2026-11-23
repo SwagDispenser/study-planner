@@ -1,5 +1,5 @@
 import type { TaskFilter } from '../../types/task'
-import { useTaskContext } from '../../hooks/useTaskContext'
+import { useTaskFilters } from '../../hooks/useTaskFilters'
 import './TaskFilters.scss'
 
 const filters: { value: TaskFilter; label: string }[] = [
@@ -9,7 +9,7 @@ const filters: { value: TaskFilter; label: string }[] = [
 ]
 
 function TaskFilters() {
-  const { filter, setFilter } = useTaskContext()
+  const { filter, priority, changeFilter } = useTaskFilters()
   return (
     <div className="task-filters" role="group" aria-label="Фільтр завдань">
       {filters.map(({ value, label }) => (
@@ -18,11 +18,17 @@ function TaskFilters() {
           key={value}
           type="button"
           aria-pressed={filter === value}
-          onClick={() => setFilter(value)}
+          onClick={() => changeFilter('status', value)}
         >
           {label}
         </button>
       ))}
+      <label className="task-filters__label" htmlFor="priority-filter">Пріоритет</label>
+      <select className="task-filters__select" id="priority-filter" value={priority}
+        onChange={(event) => changeFilter('priority', event.target.value)}>
+        <option value="all">Усі</option><option value="low">Низький</option>
+        <option value="medium">Середній</option><option value="high">Високий</option>
+      </select>
     </div>
   )
 }

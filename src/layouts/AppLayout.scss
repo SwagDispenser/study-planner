@@ -1,0 +1,8 @@
+.app-layout {
+  width: min(100% - 2rem, 820px); margin: 0 auto; padding: 2rem 0;
+  &__navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+  &__link, &__logout { display: inline-flex; align-items: center; min-height: 2.75rem; padding: 0.5rem 0.75rem; border: 1px solid #d4d4d4; border-radius: 2px; background: #fff; color: #374151; font: inherit; text-decoration: none; cursor: pointer; }
+  &__link[aria-current='page'] { background: #374151; border-color: #374151; color: #fff; }
+  &__link:focus-visible, &__logout:focus-visible { outline: 2px solid #374151; outline-offset: 3px; }
+  &__note { margin: 1.5rem 0 0; color: #526078; font-size: 0.875rem; }
+}

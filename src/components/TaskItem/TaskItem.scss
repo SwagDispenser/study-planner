@@ -149,3 +149,6 @@
 
 .task-item__confirmation { max-width: 20rem; padding: 0.75rem; border: 1px solid #9f1239; border-radius: 4px; }
 .task-item__question { margin: 0 0 0.5rem; overflow-wrap: anywhere; }
+
+.task-item__edit { text-decoration: none; }
+.task-item__error { color: #9f1239; }
